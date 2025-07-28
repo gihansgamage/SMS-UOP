@@ -27,7 +27,7 @@ function PageHeader() {
                                 lineHeight: '1.2'
                             }}
                         >
-                            Welcome to the Society Management System 🎉
+                            Welcome to the Society Management  🎉
                         </h1>
                         <p
                             style={{
