@@ -1,0 +1,8 @@
+com/university/societymanagement/service/AdminService.class
+com/university/societymanagement/controller/SocietyController.class
+com/university/societymanagement/entity/Admin$AdminType.class
+com/university/societymanagement/service/SocietyService$1.class
+com/university/societymanagement/entity/ActivityLog.class
+com/university/societymanagement/repository/AdminRepository.class
+com/university/societymanagement/service/SocietyService.class
+com/university/societymanagement/entity/Admin.class

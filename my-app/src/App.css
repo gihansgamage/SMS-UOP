@@ -1,0 +1,238 @@
+/* Reset & base styles */
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh; /* Ensure it covers full viewport height */
+  background-color: rgb(255, 255, 255); /* White background */
+  color: #000000; /* Black text */
+  box-sizing: border-box;
+
+  /* Flex layout for sticky footer */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Dark mode base */
+body.dark-mode {
+  background-color: #121212;
+  color: #eee;
+}
+
+/* Logo styles */
+.logo {
+  height: auto;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+/* Logo spin animation */
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+/* Card styles */
+.card {
+  padding: 2em;
+  margin: 1em;
+  color: #000; /* Dark text for cards on lighter backgrounds */
+  background-color: #fff; /* White background for cards */
+  border-radius: 8px;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* Dark mode card styles */
+body.dark-mode .card {
+  background-color: #1e1e1e;
+  color: #ddd;
+}
+
+/* Text color for docs */
+.read-the-docs {
+  color: #000000;
+}
+
+/* Dark mode docs text */
+body.dark-mode .read-the-docs {
+  color: #ddd;
+}
+
+/* Button styles */
+.btn {
+  border-radius: 10px;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* Dark mode button styles */
+body.dark-mode .btn {
+  background-color: #444;
+  color: #eee;
+}
+
+/* Custom Card Group */
+.custom-card-group {
+  justify-content: center;
+  gap: 2rem;
+  padding: 2rem;
+}
+
+/* Custom Card */
+.custom-card {
+  border-radius: 15px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease, box-shadow 0.3s ease,
+              background-color 0.3s, color 0.3s;
+  background-color: #343a40;
+  color: #fff;
+}
+
+.custom-card:hover {
+  transform: scale(1.03);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+/* Dark mode custom card */
+body.dark-mode .custom-card {
+  background-color: #222;
+  color: #eee;
+}
+
+.custom-card .card-title {
+  font-size: 1.3rem;
+  font-weight: bold;
+}
+
+.custom-card .card-text {
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Custom Button */
+.custom-btn {
+  width: 100%;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+}
+
+/* Navbar */
+.custom-navbar {
+  justify-content: flex-start;
+  background-color: maroon !important;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.custom-navbar .navbar-brand,
+.custom-navbar .nav-link {
+  color: #fff !important;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.custom-navbar .nav-link:hover {
+  color: #ffcb43 !important;
+}
+
+/* Dark mode navbar */
+body.dark-mode .custom-navbar {
+  background-color: #000000fd !important;
+}
+
+body.dark-mode .custom-navbar .navbar-brand,
+body.dark-mode .custom-navbar .nav-link {
+  color: #ffcb43 !important;
+}
+
+/* Center content wrapper */
+.center-content {
+  width: 100%;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+/* Wrapper for layout - main content grows to push footer down */
+.wrapper {
+  flex: 1 0 auto; /* grow and shrink, push footer down */
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+/* Footer styles */
+.custom-footer {
+  flex-shrink: 0; /* don’t shrink */
+  background-color: maroon;
+  color: #fff;
+  padding: 2rem 1rem;
+  text-align: center;
+  margin-top: auto; /* push footer down */
+  position: relative;
+  z-index: 1;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* Dark mode footer */
+body.dark-mode .custom-footer {
+  background-color: #550000;
+  color: #ffcb43;
+}
+
+.footer-content {
+  max-width: 1000px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.footer-content h5 {
+  margin-bottom: 0.5rem;
+  font-size: 1.2rem;
+}
+
+.footer-links {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.footer-links a {
+  color: #ffcb43;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.footer-links a:hover {
+  text-decoration: underline;
+  color: #fff;
+}
+
+/* Responsive footer links */
+@media (max-width: 600px) {
+  .footer-links {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
