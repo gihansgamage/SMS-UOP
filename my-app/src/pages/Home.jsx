@@ -3,12 +3,14 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import MyNavbar from "../components/MyNavbar";
 import Cards from "../components/Cards";
 import Footer from "../components/Footer";
+import Header from "../components/Header.jsx";
 
 export default function Home() {
   return (
     <div>
         
         <MyNavbar />
+        <Header />
         <Cards />
         <Footer />
     </div>
