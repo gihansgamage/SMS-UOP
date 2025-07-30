@@ -1,126 +1,150 @@
 package com.university.societymanagement.controller;
 
-import com.university.societymanagement.entity.Admin;
-import com.university.societymanagement.service.*;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
+import com.university.societymanagement.entity.AdminUser;
+import com.university.societymanagement.service.ActivityLogService;
+import com.university.societymanagement.service.AdminUserService;
+import com.university.societymanagement.util.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
+@CrossOrigin(origins = "*")
 public class AuthController {
 
     @Autowired
-    private JwtService jwtService;
+    private AdminUserService adminUserService;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Autowired
+    private ActivityLogService activityLogService;
+
+    @Value("${google.client.id}")
+    private String googleClientId;
 
     @PostMapping("/google-login")
-    public ResponseEntity<Map<String, Object>> googleLogin(@RequestBody Map<String, String> request) {
-        Map<String, Object> response = new HashMap<>();
-
+    public ResponseEntity<?> googleLogin(@RequestBody Map<String, String> request, HttpServletRequest httpRequest) {
         try {
-            // Simulate Google OAuth validation
-            String token = jwtService.generateToken("admin@university.edu");
+            String token = request.get("token");
+            
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
+                    new NetHttpTransport(), new GsonFactory())
+                    .setAudience(Collections.singletonList(googleClientId))
+                    .build();
 
-            response.put("success", true);
-            response.put("token", token);
-            response.put("admin", Map.of(
-                    "email", "admin@university.edu",
-                    "name", "Admin User",
-                    "type", "SSD_ADMIN"
-            ));
+            GoogleIdToken idToken = verifier.verify(token);
+            if (idToken != null) {
+                GoogleIdToken.Payload payload = idToken.getPayload();
+                String email = payload.getEmail();
+                String name = (String) payload.get("name");
 
-            return ResponseEntity.ok(response);
-
+                // Check if user is an admin
+                Optional<AdminUser> adminOpt = adminUserService.findByEmail(email);
+                if (adminOpt.isPresent() && adminOpt.get().getIsActive()) {
+                    AdminUser admin = adminOpt.get();
+                    
+                    // Update last login
+                    adminUserService.updateLastLogin(email);
+                    
+                    // Generate JWT token
+                    UserDetails userDetails = adminUserService.loadUserByUsername(email);
+                    String jwtToken = jwtUtil.generateToken(userDetails);
+                    
+                    // Log successful login
+                    String ipAddress = getClientIpAddress(httpRequest);
+                    activityLogService.logActivity(admin, "LOGIN_SUCCESS", 
+                            "Successful login via Google OAuth", ipAddress);
+                    
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("success", true);
+                    response.put("token", jwtToken);
+                    response.put("adminType", admin.getAdminType().toString());
+                    response.put("faculty", admin.getFaculty());
+                    response.put("name", admin.getName());
+                    
+                    return ResponseEntity.ok(response);
+                } else {
+                    // Log unauthorized attempt
+                    activityLogService.logActivity(null, "UNAUTHORIZED_LOGIN_ATTEMPT", 
+                            "Unauthorized login attempt with email: " + email, getClientIpAddress(httpRequest));
+                    
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("success", false);
+                    response.put("message", "Access denied. You are not authorized to access the admin panel.");
+                    
+                    return ResponseEntity.ok(response);
+                }
+            } else {
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", false);
+                response.put("message", "Invalid Google token");
+                
+                return ResponseEntity.badRequest().body(response);
+            }
         } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
             response.put("success", false);
-            response.put("message", "Login failed: " + e.getMessage());
-            return ResponseEntity.status(500).body(response);
+            response.put("message", "Authentication failed: " + e.getMessage());
+            
+            return ResponseEntity.badRequest().body(response);
         }
     }
 
     @PostMapping("/validate-token")
-    public ResponseEntity<Map<String, Object>> validateToken(@RequestBody Map<String, String> request) {
-        Map<String, Object> response = new HashMap<>();
-
+    public ResponseEntity<?> validateToken(@RequestBody Map<String, String> request) {
         try {
             String token = request.get("token");
-
-            if (token == null || !jwtService.validateToken(token) || jwtService.isTokenExpired(token)) {
+            String email = jwtUtil.getEmailFromToken(token);
+            
+            Optional<AdminUser> adminOpt = adminUserService.findByEmail(email);
+            if (adminOpt.isPresent() && adminOpt.get().getIsActive()) {
+                UserDetails userDetails = adminUserService.loadUserByUsername(email);
+                boolean isValid = jwtUtil.validateToken(token, userDetails);
+                
+                Map<String, Object> response = new HashMap<>();
+                response.put("valid", isValid);
+                
+                if (isValid) {
+                    AdminUser admin = adminOpt.get();
+                    response.put("adminType", admin.getAdminType().toString());
+                    response.put("faculty", admin.getFaculty());
+                    response.put("name", admin.getName());
+                }
+                
+                return ResponseEntity.ok(response);
+            } else {
+                Map<String, Object> response = new HashMap<>();
                 response.put("valid", false);
                 return ResponseEntity.ok(response);
             }
-
-            String email = jwtService.getEmailFromToken(token);
-            response.put("valid", true);
-            response.put("email", email);
-
-            return ResponseEntity.ok(response);
-
         } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
             response.put("valid", false);
             return ResponseEntity.ok(response);
         }
     }
 
-    @PostMapping("/admin/login")
-    public ResponseEntity<Map<String, Object>> adminLogin(@RequestBody Map<String, String> request) {
-        Map<String, Object> response = new HashMap<>();
-
-        try {
-            String email = request.get("email");
-
-            // Check if email is authorized
-            if (!isAuthorizedAdmin(email)) {
-                response.put("success", false);
-                response.put("message", "Access denied. Not an authorized admin email.");
-                return ResponseEntity.status(403).body(response);
-            }
-
-            // Generate token for authorized admin
-            String token = jwtService.generateToken(email);
-
-            response.put("success", true);
-            response.put("token", token);
-            response.put("admin", Map.of(
-                    "email", email,
-                    "name", getAdminName(email),
-                    "type", getAdminType(email)
-            ));
-
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "Login failed: " + e.getMessage());
-            return ResponseEntity.status(500).body(response);
-        }
-    }
-
-    private boolean isAuthorizedAdmin(String email) {
-        return email.equals("gsgamage4@gmail.com") ||
-                email.equals("gihansgamage@gmail.com") ||
-                email.equals("s20369@sci.pdn.ac.lk");
-    }
-
-    private String getAdminName(String email) {
-        switch (email) {
-            case "gsgamage4@gmail.com": return "Vice Chancellor";
-            case "gihansgamage@gmail.com": return "Faculty Dean";
-            case "s20369@sci.pdn.ac.lk": return "SSD Admin";
-            default: return "Admin";
-        }
-    }
-
-    private String getAdminType(String email) {
-        switch (email) {
-            case "gsgamage4@gmail.com": return "VICE_CHANCELLOR";
-            case "gihansgamage@gmail.com": return "FACULTY_DEAN";
-            case "s20369@sci.pdn.ac.lk": return "SSD_ADMIN";
-            default: return "SSD_ADMIN";
+    private String getClientIpAddress(HttpServletRequest request) {
+        String xForwardedForHeader = request.getHeader("X-Forwarded-For");
+        if (xForwardedForHeader == null) {
+            return request.getRemoteAddr();
+        } else {
+            return xForwardedForHeader.split(",")[0];
         }
     }
 }

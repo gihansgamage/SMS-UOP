@@ -53,7 +53,7 @@ function PageHeader() {
                             }}
                         >
                             <img
-                                src="./public/cover.png"
+                                src="./cover.png"
                                 alt="Modern Building Community"
                                 style={{
                                     maxHeight: '250px',

@@ -26,7 +26,7 @@ const DeadlineDisplay = () => {
                     Submission Deadline
                 </h5>
                 <p className="mb-0">
-                    You should submit hard copy to the Student Services Division before{' '}
+                    You should hand over the hard copy to the Student Services Division within 7 days. For example, if you fill out the form today, you should submit the hard copy before{' '}
                     <strong>{deadline}</strong>
                 </p>
             </div>

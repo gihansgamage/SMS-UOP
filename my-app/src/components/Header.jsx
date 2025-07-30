@@ -120,7 +120,7 @@ const Header = () => {
                     </h1>
                     <div style={dividerStyle}></div>
                     <p style={welcomeStyle} className="welcome-text">
-                        Welcome to Society Management System!
+                        Welcome to the Society Management System - University of Peradeniya
                     </p>
                     <div style={dotsContainerStyle}>
                         <div className="dot-1"></div>

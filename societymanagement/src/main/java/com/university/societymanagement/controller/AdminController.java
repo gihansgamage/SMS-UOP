@@ -1,14 +1,20 @@
 package com.university.societymanagement.controller;
 
-import com.university.societymanagement.entity.Admin;
-import com.university.societymanagement.entity.Society;
 import com.university.societymanagement.entity.ActivityLog;
-import com.university.societymanagement.service.*;
+import com.university.societymanagement.entity.AdminUser;
+import com.university.societymanagement.entity.SocietyRegistration;
+import com.university.societymanagement.service.ActivityLogService;
+import com.university.societymanagement.service.AdminUserService;
+import com.university.societymanagement.service.SocietyRegistrationService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,247 +22,231 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/admin")
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
+@CrossOrigin(origins = "*")
 public class AdminController {
 
     @Autowired
-    private AdminService adminService;
+    private AdminUserService adminUserService;
 
     @Autowired
-    private SocietyService societyService;
+    private SocietyRegistrationService registrationService;
 
     @Autowired
     private ActivityLogService activityLogService;
 
-    @Autowired
-    private JwtService jwtService;
-
     @GetMapping("/dashboard")
-    public ResponseEntity<Map<String, Object>> getDashboard(
-            @RequestHeader("Authorization") String authHeader,
-            HttpServletRequest request) {
+    public ResponseEntity<?> getDashboard(Authentication authentication, HttpServletRequest request) {
         try {
-            String email = getEmailFromAuthHeader(authHeader);
-            if (email == null) {
-                return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+            String email = authentication.getName();
+            Optional<AdminUser> adminOpt = adminUserService.findByEmail(email);
+            
+            if (adminOpt.isPresent()) {
+                AdminUser admin = adminOpt.get();
+                
+                // Log dashboard access
+                String ipAddress = getClientIpAddress(request);
+                activityLogService.logActivity(admin, "DASHBOARD_ACCESS", 
+                        "Accessed admin dashboard", ipAddress);
+                
+                Map<String, Object> response = new HashMap<>();
+                response.put("name", admin.getName());
+                response.put("email", admin.getEmail());
+                response.put("type", admin.getAdminType().toString());
+                response.put("faculty", admin.getFaculty());
+                response.put("lastLogin", admin.getLastLogin());
+                
+                // Add statistics based on admin type
+                if (admin.getAdminType() == AdminUser.AdminType.FACULTY_DEAN) {
+                    response.put("pendingSocietyCount", 
+                            registrationService.getPendingCountForFaculty(admin.getFaculty()));
+                } else {
+                    response.put("pendingSocietyCount", registrationService.getPendingCount());
+                }
+                
+                response.put("approvedSocietyCount", registrationService.getApprovedCount());
+                response.put("pendingRenewalCount", 0L); // TODO: Implement renewal service
+                response.put("pendingPermissionCount", 0L); // TODO: Implement permission service
+                
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity.badRequest().body("Admin not found");
             }
-
-            Optional<Admin> adminOpt = adminService.findByEmailAndActive(email);
-            if (adminOpt.isEmpty()) {
-                return ResponseEntity.status(403).body(Map.of("error", "Access denied"));
-            }
-
-            Admin admin = adminOpt.get();
-            Map<String, Object> dashboardData = new HashMap<>();
-
-            dashboardData.put("email", admin.getEmail());
-            dashboardData.put("name", admin.getName());
-            dashboardData.put("type", admin.getType().toString());
-            dashboardData.put("lastLogin", admin.getLastLogin());
-
-            // Get statistics based on admin type
-            dashboardData.put("pendingCount", societyService.getPendingCountForAdmin(admin.getType()));
-            dashboardData.put("approvedCount", societyService.getApprovedCount());
-            dashboardData.put("rejectedCount", societyService.getRejectedCount());
-            dashboardData.put("totalCount", societyService.getTotalCount());
-
-            // Log dashboard access
-            String ipAddress = getClientIpAddress(request);
-            activityLogService.logActivity(
-                    email,
-                    "DASHBOARD_ACCESS",
-                    "Accessed admin dashboard",
-                    ipAddress
-            );
-
-            return ResponseEntity.ok(dashboardData);
-
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("error", "Internal server error"));
-        }
-    }
-
-    @GetMapping("/pending-societies")
-    public ResponseEntity<Map<String, Object>> getPendingSocieties(
-            @RequestHeader("Authorization") String authHeader,
-            HttpServletRequest request) {
-        try {
-            String email = getEmailFromAuthHeader(authHeader);
-            if (email == null) {
-                return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
-            }
-
-            Admin.AdminType adminType = adminService.getAdminType(email);
-            if (adminType == null) {
-                return ResponseEntity.status(403).body(Map.of("error", "Access denied"));
-            }
-
-            List<Society> pendingSocieties = societyService.getPendingSocietiesForAdmin(adminType);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("societies", pendingSocieties);
-            response.put("adminType", adminType.toString());
-
-            // Log activity
-            String ipAddress = getClientIpAddress(request);
-            activityLogService.logActivity(
-                    email,
-                    "PENDING_SOCIETIES_ACCESS",
-                    "Accessed pending societies list",
-                    ipAddress
-            );
-
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("error", "Internal server error"));
-        }
-    }
-
-    @PostMapping("/societies/{societyId}/approve")
-    public ResponseEntity<Map<String, Object>> approveSociety(
-            @PathVariable Long societyId,
-            @RequestHeader("Authorization") String authHeader,
-            HttpServletRequest request) {
-        try {
-            String email = getEmailFromAuthHeader(authHeader);
-            if (email == null) {
-                return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
-            }
-
-            Admin.AdminType adminType = adminService.getAdminType(email);
-            if (adminType == null) {
-                return ResponseEntity.status(403).body(Map.of("error", "Access denied"));
-            }
-
-            String ipAddress = getClientIpAddress(request);
-            Society approvedSociety = societyService.approveSociety(societyId, email, adminType, ipAddress);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", "Society approved successfully");
-            response.put("society", approvedSociety);
-
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("success", false);
-            errorResponse.put("error", e.getMessage());
-            return ResponseEntity.status(500).body(errorResponse);
-        }
-    }
-
-    @PostMapping("/societies/{societyId}/reject")
-    public ResponseEntity<Map<String, Object>> rejectSociety(
-            @PathVariable Long societyId,
-            @RequestBody Map<String, String> requestBody,
-            @RequestHeader("Authorization") String authHeader,
-            HttpServletRequest request) {
-        try {
-            String email = getEmailFromAuthHeader(authHeader);
-            if (email == null) {
-                return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
-            }
-
-            String reason = requestBody.get("reason");
-            if (reason == null || reason.trim().isEmpty()) {
-                return ResponseEntity.status(400).body(Map.of("error", "Rejection reason is required"));
-            }
-
-            String ipAddress = getClientIpAddress(request);
-            Society rejectedSociety = societyService.rejectSociety(societyId, email, reason, ipAddress);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", "Society rejected successfully");
-            response.put("society", rejectedSociety);
-
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("success", false);
-            errorResponse.put("error", e.getMessage());
-            return ResponseEntity.status(500).body(errorResponse);
-        }
-    }
-
-    @GetMapping("/all-societies")
-    public ResponseEntity<Map<String, Object>> getAllSocieties(
-            @RequestHeader("Authorization") String authHeader,
-            HttpServletRequest request) {
-        try {
-            String email = getEmailFromAuthHeader(authHeader);
-            if (email == null) {
-                return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
-            }
-
-            List<Society> societies = societyService.getAllSocieties();
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("societies", societies);
-
-            // Log activity
-            String ipAddress = getClientIpAddress(request);
-            activityLogService.logActivity(
-                    email,
-                    "ALL_SOCIETIES_ACCESS",
-                    "Accessed all societies list",
-                    ipAddress
-            );
-
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("error", "Internal server error"));
+            return ResponseEntity.badRequest().body("Failed to load dashboard: " + e.getMessage());
         }
     }
 
     @GetMapping("/activity-logs")
-    public ResponseEntity<Map<String, Object>> getActivityLogs(
+    public ResponseEntity<?> getActivityLogs(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestHeader("Authorization") String authHeader,
+            Authentication authentication,
             HttpServletRequest request) {
         try {
-            String email = getEmailFromAuthHeader(authHeader);
-            if (email == null) {
-                return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+            String email = authentication.getName();
+            Optional<AdminUser> adminOpt = adminUserService.findByEmail(email);
+            
+            if (adminOpt.isPresent()) {
+                AdminUser admin = adminOpt.get();
+                
+                // Log activity logs access
+                String ipAddress = getClientIpAddress(request);
+                activityLogService.logActivity(admin, "ACTIVITY_LOGS_ACCESS", 
+                        "Accessed activity logs", ipAddress);
+                
+                Pageable pageable = PageRequest.of(page, size);
+                Page<ActivityLog> logs = activityLogService.getAllActivityLogs(pageable);
+                
+                Map<String, Object> response = new HashMap<>();
+                response.put("logs", logs.getContent());
+                response.put("currentPage", logs.getNumber());
+                response.put("totalPages", logs.getTotalPages());
+                response.put("totalElements", logs.getTotalElements());
+                
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity.badRequest().body("Admin not found");
             }
-
-            Page<ActivityLog> logsPage = activityLogService.getActivityLogs(page, size);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("logs", logsPage.getContent());
-            response.put("currentPage", logsPage.getNumber());
-            response.put("totalPages", logsPage.getTotalPages());
-            response.put("totalElements", logsPage.getTotalElements());
-
-            // Log activity
-            String ipAddress = getClientIpAddress(request);
-            activityLogService.logActivity(
-                    email,
-                    "ACTIVITY_LOGS_ACCESS",
-                    "Accessed activity logs (page " + page + ")",
-                    ipAddress
-            );
-
-            return ResponseEntity.ok(response);
-
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("error", "Internal server error"));
+            return ResponseEntity.badRequest().body("Failed to load activity logs: " + e.getMessage());
         }
     }
 
-    private String getEmailFromAuthHeader(String authHeader) {
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            if (jwtService.validateToken(token) && !jwtService.isTokenExpired(token)) {
-                return jwtService.getEmailFromToken(token);
+    @GetMapping("/all-admins")
+    public ResponseEntity<?> getAllAdmins(Authentication authentication, HttpServletRequest request) {
+        try {
+            String email = authentication.getName();
+            Optional<AdminUser> adminOpt = adminUserService.findByEmail(email);
+            
+            if (adminOpt.isPresent()) {
+                AdminUser admin = adminOpt.get();
+                
+                // Log admin list access
+                String ipAddress = getClientIpAddress(request);
+                activityLogService.logActivity(admin, "ADMIN_LIST_ACCESS", 
+                        "Accessed admin list", ipAddress);
+                
+                List<AdminUser> admins = adminUserService.getAllActiveAdmins();
+                
+                Map<String, Object> response = new HashMap<>();
+                response.put("admins", admins);
+                
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity.badRequest().body("Admin not found");
             }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Failed to load admins: " + e.getMessage());
         }
-        return null;
+    }
+
+    @GetMapping("/pending-societies")
+    public ResponseEntity<?> getPendingSocieties(Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            Optional<AdminUser> adminOpt = adminUserService.findByEmail(email);
+            
+            if (adminOpt.isPresent()) {
+                AdminUser admin = adminOpt.get();
+                List<SocietyRegistration> pendingSocieties;
+                
+                switch (admin.getAdminType()) {
+                    case FACULTY_DEAN:
+                        pendingSocieties = registrationService.getPendingRegistrationsForFaculty(admin.getFaculty());
+                        break;
+                    case ASSISTANT_REGISTRAR:
+                        pendingSocieties = registrationService.getPendingRegistrationsForRegistrar();
+                        break;
+                    case VICE_CHANCELLOR:
+                        pendingSocieties = registrationService.getPendingRegistrationsForVC();
+                        break;
+                    default:
+                        pendingSocieties = List.of();
+                }
+                
+                return ResponseEntity.ok(pendingSocieties);
+            } else {
+                return ResponseEntity.badRequest().body("Admin not found");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Failed to load pending societies: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/approve-society/{id}")
+    public ResponseEntity<?> approveSociety(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> request,
+            Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            Optional<AdminUser> adminOpt = adminUserService.findByEmail(email);
+            
+            if (adminOpt.isPresent()) {
+                AdminUser admin = adminOpt.get();
+                String comments = request.get("comments");
+                
+                SocietyRegistration registration;
+                switch (admin.getAdminType()) {
+                    case FACULTY_DEAN:
+                        registration = registrationService.approveByDean(id, admin, comments);
+                        break;
+                    case ASSISTANT_REGISTRAR:
+                        registration = registrationService.approveByRegistrar(id, admin, comments);
+                        break;
+                    case VICE_CHANCELLOR:
+                        registration = registrationService.approveByVC(id, admin, comments);
+                        break;
+                    default:
+                        return ResponseEntity.badRequest().body("Unauthorized to approve societies");
+                }
+                
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", true);
+                response.put("message", "Society approved successfully");
+                response.put("registration", registration);
+                
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity.badRequest().body("Admin not found");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Failed to approve society: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/reject-society/{id}")
+    public ResponseEntity<?> rejectSociety(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> request,
+            Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            Optional<AdminUser> adminOpt = adminUserService.findByEmail(email);
+            
+            if (adminOpt.isPresent()) {
+                AdminUser admin = adminOpt.get();
+                String comments = request.get("comments");
+                
+                // Only deans can reject (others can only approve or let it pass to next level)
+                if (admin.getAdminType() == AdminUser.AdminType.FACULTY_DEAN) {
+                    SocietyRegistration registration = registrationService.rejectByDean(id, admin, comments);
+                    
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("success", true);
+                    response.put("message", "Society rejected successfully");
+                    response.put("registration", registration);
+                    
+                    return ResponseEntity.ok(response);
+                } else {
+                    return ResponseEntity.badRequest().body("Only Faculty Deans can reject applications");
+                }
+            } else {
+                return ResponseEntity.badRequest().body("Admin not found");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Failed to reject society: " + e.getMessage());
+        }
     }
 
     private String getClientIpAddress(HttpServletRequest request) {
