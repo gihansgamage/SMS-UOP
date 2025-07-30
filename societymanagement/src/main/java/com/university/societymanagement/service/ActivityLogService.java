@@ -17,8 +17,18 @@ public class ActivityLogService {
     private ActivityLogRepository activityLogRepository;
 
     public void logActivity(AdminUser admin, String activity, String details, String ipAddress) {
-        ActivityLog log = new ActivityLog(admin, activity, details, ipAddress);
-        activityLogRepository.save(log);
+        try {
+            if (admin != null) {
+                ActivityLog log = new ActivityLog(admin, activity, details, ipAddress);
+                activityLogRepository.save(log);
+            } else {
+                // Handle case where admin is null (unauthorized attempts)
+                System.out.println("Activity log skipped - admin is null. Activity: " + activity + ", Details: " + details);
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to log activity: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     public Page<ActivityLog> getAllActivityLogs(Pageable pageable) {

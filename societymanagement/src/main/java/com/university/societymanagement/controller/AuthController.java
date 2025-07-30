@@ -79,9 +79,9 @@ public class AuthController {
                     
                     return ResponseEntity.ok(response);
                 } else {
-                    // Log unauthorized attempt
-                    activityLogService.logActivity(null, "UNAUTHORIZED_LOGIN_ATTEMPT", 
-                            "Unauthorized login attempt with email: " + email, getClientIpAddress(httpRequest));
+                    // Log unauthorized attempt - Create a temporary admin object or handle differently
+                    String ipAddress = getClientIpAddress(httpRequest);
+                    System.out.println("Unauthorized login attempt with email: " + email + " from IP: " + ipAddress);
                     
                     Map<String, Object> response = new HashMap<>();
                     response.put("success", false);
@@ -97,6 +97,9 @@ public class AuthController {
                 return ResponseEntity.badRequest().body(response);
             }
         } catch (Exception e) {
+            System.err.println("Authentication error: " + e.getMessage());
+            e.printStackTrace();
+            
             Map<String, Object> response = new HashMap<>();
             response.put("success", false);
             response.put("message", "Authentication failed: " + e.getMessage());
@@ -133,6 +136,7 @@ public class AuthController {
                 return ResponseEntity.ok(response);
             }
         } catch (Exception e) {
+            System.err.println("Token validation error: " + e.getMessage());
             Map<String, Object> response = new HashMap<>();
             response.put("valid", false);
             return ResponseEntity.ok(response);
