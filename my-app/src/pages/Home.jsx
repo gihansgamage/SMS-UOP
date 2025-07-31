@@ -4,14 +4,17 @@ import MyNavbar from "../components/MyNavbar";
 import Cards from "../components/Cards";
 import Footer from "../components/Footer";
 import Header from "../components/Header.jsx";
+import About from "../components/About.jsx";
 
 export default function Home() {
   return (
     <div>
         
-        <MyNavbar />
+
+       <MyNavbar />
         <Header />
         <Cards />
+        <About/>
         <Footer />
     </div>
   );
