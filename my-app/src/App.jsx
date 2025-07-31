@@ -25,7 +25,7 @@ function App() {
           <Route path="/adminlogin" element={<AdminLogin />} />
           <Route path="/admin/*" element={
             <>
-              <AdminNav />
+              {/*<AdminNav />*/}
               <Routes>
                 <Route path="" element={<AdminPanel />} />
                 <Route path="/pending" element={<PendingSocities />} />

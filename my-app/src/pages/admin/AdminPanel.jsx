@@ -1,4 +1,3 @@
-// ...imports remain unchanged
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -20,17 +19,22 @@ export default function AdminPanel() {
       navigate('/adminlogin');
       return;
     }
+
     validateAndLoadData(token);
   }, [navigate]);
 
   const validateAndLoadData = async (token) => {
     try {
-      const response = await axios.post('http://localhost:8080/api/auth/validate-token', { token });
+      const response = await axios.post('http://localhost:8080/api/auth/validate-token', {
+        token: token
+      });
+
       if (!response.data.valid) {
         localStorage.removeItem('token');
         navigate('/adminlogin');
         return;
       }
+
       await loadDashboard();
       setLoading(false);
     } catch (error) {
@@ -55,6 +59,7 @@ export default function AdminPanel() {
       setAdminData(response.data);
     } catch (error) {
       setError('Failed to load dashboard data');
+      console.error('Dashboard error:', error);
     }
   };
 
@@ -69,6 +74,7 @@ export default function AdminPanel() {
       setTotalPages(response.data.totalPages);
     } catch (error) {
       setError('Failed to load activity logs');
+      console.error('Activity logs error:', error);
     }
   };
 
@@ -78,14 +84,19 @@ export default function AdminPanel() {
       setAdmins(response.data.admins);
     } catch (error) {
       setError('Failed to load admins');
+      console.error('Admins error:', error);
     }
   };
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     setError('');
-    if (tab === 'logs') loadActivityLogs(0);
-    else if (tab === 'admins') loadAdmins();
+
+    if (tab === 'logs') {
+      loadActivityLogs(0);
+    } else if (tab === 'admins') {
+      loadAdmins();
+    }
   };
 
   const handleLogout = () => {
@@ -93,7 +104,9 @@ export default function AdminPanel() {
     navigate('/adminlogin');
   };
 
-  const formatDate = (dateString) => new Date(dateString).toLocaleString();
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleString();
+  };
 
   const handlePageChange = (newPage) => {
     if (newPage >= 0 && newPage < totalPages) {
@@ -101,51 +114,44 @@ export default function AdminPanel() {
     }
   };
 
-  const baseCardStyle = {
-    background: 'rgba(255, 255, 255, 0.05)',
-    backdropFilter: 'blur(8px)',
-    WebkitBackdropFilter: 'blur(8px)',
-    borderRadius: '12px',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    padding: '2rem',
-    color: 'white',
-    boxShadow: '0 0 15px rgba(0,255,255,0.2)'
-  };
-
   if (loading) {
     return (
         <div style={{
-          display: 'flex', justifyContent: 'center', alignItems: 'center',
-          height: '100vh', backgroundColor: '#0f111a', color: '#00fff7'
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh'
         }}>
-          Loading futuristic interface...
+          Loading...
         </div>
     );
   }
 
   return (
-      <div style={{ minHeight: '100vh', background: 'linear-gradient(to right, #0f2027, #203a43, #2c5364)', color: 'white' }}>
+      <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
         {/* Header */}
         <header style={{
-          backgroundColor: '#11141a',
-          padding: '1.5rem 2rem',
+          backgroundColor: '#2c3e50',
+          color: 'white',
+          padding: '1rem 2rem',
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center',
-          borderBottom: '1px solid #1f2a38'
+          alignItems: 'center'
         }}>
-          <h1 style={{ margin: 0, color: '#00fff7', letterSpacing: '1px' }}>⚡ Admin Console</h1>
+          <h1 style={{ margin: 0 }}>Admin Panel</h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <span style={{ fontWeight: 'lighter', fontSize: '1rem' }}>Hello, {adminData?.name}</span>
-            <button onClick={handleLogout} style={{
-              padding: '0.5rem 1rem',
-              background: 'linear-gradient(45deg, #00c6ff, #0072ff)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontWeight: 'bold'
-            }}>
+            <span>Welcome, {adminData?.name}</span>
+            <button
+                onClick={handleLogout}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#e74c3c',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+            >
               Logout
             </button>
           </div>
@@ -153,28 +159,25 @@ export default function AdminPanel() {
 
         {/* Navigation */}
         <nav style={{
-          background: '#151b27',
+          backgroundColor: '#34495e',
+          padding: '0 2rem',
           display: 'flex',
-          gap: '2rem',
-          padding: '1rem 2rem',
-          borderBottom: '1px solid #2b3a50'
+          gap: '1rem'
         }}>
           {['dashboard', 'logs', 'admins'].map(tab => (
               <button
                   key={tab}
                   onClick={() => handleTabChange(tab)}
                   style={{
-                    background: activeTab === tab ? 'linear-gradient(to right, #00f260, #0575e6)' : 'transparent',
-                    color: activeTab === tab ? 'white' : '#b0c4de',
-                    padding: '0.75rem 1.5rem',
+                    padding: '1rem 1.5rem',
+                    backgroundColor: activeTab === tab ? '#3498db' : 'transparent',
+                    color: 'white',
                     border: 'none',
-                    borderRadius: '8px',
                     cursor: 'pointer',
-                    fontWeight: 'bold',
-                    transition: '0.3s'
+                    textTransform: 'capitalize'
                   }}
               >
-                {tab === 'logs' ? 'Activity Logs' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                {tab === 'logs' ? 'Activity Logs' : tab}
               </button>
           ))}
         </nav>
@@ -183,153 +186,193 @@ export default function AdminPanel() {
         <main style={{ padding: '2rem' }}>
           {error && (
               <div style={{
-                backgroundColor: '#ff4e50',
+                backgroundColor: '#ffebee',
+                color: '#c62828',
                 padding: '1rem',
-                borderRadius: '6px',
+                borderRadius: '4px',
                 marginBottom: '1rem',
-                color: 'white',
-                fontWeight: 'bold'
+                border: '1px solid #ffcdd2'
               }}>
                 {error}
               </div>
           )}
 
+          {/* Dashboard Tab */}
           {activeTab === 'dashboard' && (
-              <section>
-                <h2 style={{ marginBottom: '1rem' }}>Dashboard Overview</h2>
-                <div style={baseCardStyle}>
-                  <p>🚀 Welcome to the futuristic admin dashboard.</p>
-                  <p><strong>Email:</strong> {adminData?.email}</p>
-                  <p><strong>Access:</strong> Administrator</p>
+              <div>
+                <h2>Dashboard</h2>
+                <div style={{
+                  backgroundColor: 'white',
+                  padding: '2rem',
+                  borderRadius: '8px',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                }}>
+                  <p style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>
+                    Welcome to the Admin Panel!
+                  </p>
+                  <p><strong>Logged in as:</strong> {adminData?.email}</p>
+                  <p><strong>Access Level:</strong> Administrator</p>
                   <p><strong>Last Login:</strong> {formatDate(new Date())}</p>
                 </div>
-              </section>
+              </div>
           )}
 
+          {/* Activity Logs Tab */}
           {activeTab === 'logs' && (
-              <section>
-                <h2 style={{ marginBottom: '1rem' }}>Recent Activity Logs</h2>
-                <div style={baseCardStyle}>
+              <div>
+                <h2>Activity Logs</h2>
+                <div style={{
+                  backgroundColor: 'white',
+                  borderRadius: '8px',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                  overflow: 'hidden'
+                }}>
                   <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', color: 'white' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                       <thead>
-                      <tr style={{ backgroundColor: '#1c2636' }}>
-                        <th style={tableHeadCell}>Admin</th>
-                        <th style={tableHeadCell}>Activity</th>
-                        <th style={tableHeadCell}>Details</th>
-                        <th style={tableHeadCell}>Timestamp</th>
-                        <th style={tableHeadCell}>IP</th>
+                      <tr style={{ backgroundColor: '#f8f9fa' }}>
+                        <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>Admin</th>
+                        <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>Activity</th>
+                        <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>Details</th>
+                        <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>Timestamp</th>
+                        <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>IP Address</th>
                       </tr>
                       </thead>
                       <tbody>
-                      {activityLogs.map((log, i) => (
-                          <tr key={i} style={{ borderBottom: '1px solid #2a3b4d' }}>
-                            <td style={tableBodyCell}>{log.adminEmail}</td>
-                            <td style={tableBodyCell}>
+                      {activityLogs.map((log, index) => (
+                          <tr key={index} style={{ borderBottom: '1px solid #dee2e6' }}>
+                            <td style={{ padding: '1rem' }}>{log.adminEmail}</td>
+                            <td style={{ padding: '1rem' }}>
                           <span style={{
-                            background: getActivityColor(log.activity),
-                            padding: '0.3rem 0.6rem',
+                            padding: '0.25rem 0.5rem',
+                            backgroundColor: getActivityColor(log.activity),
+                            color: 'white',
                             borderRadius: '4px',
-                            fontSize: '0.8rem',
-                            color: 'white'
-                          }}>{log.activity}</span>
+                            fontSize: '0.8rem'
+                          }}>
+                            {log.activity}
+                          </span>
                             </td>
-                            <td style={tableBodyCell}>{log.details}</td>
-                            <td style={tableBodyCell}>{formatDate(log.timestamp)}</td>
-                            <td style={tableBodyCell}>{log.ipAddress}</td>
+                            <td style={{ padding: '1rem' }}>{log.details}</td>
+                            <td style={{ padding: '1rem' }}>{formatDate(log.timestamp)}</td>
+                            <td style={{ padding: '1rem' }}>{log.ipAddress}</td>
                           </tr>
                       ))}
                       </tbody>
                     </table>
                   </div>
-                  <div style={{ marginTop: '1rem', textAlign: 'center' }}>
-                    <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 0} style={paginationBtn}>
-                      ◀ Prev
+
+                  {/* Pagination */}
+                  <div style={{
+                    padding: '1rem',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    borderTop: '1px solid #dee2e6'
+                  }}>
+                    <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 0}
+                        style={{
+                          padding: '0.5rem 1rem',
+                          backgroundColor: currentPage === 0 ? '#ccc' : '#3498db',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: currentPage === 0 ? 'not-allowed' : 'pointer'
+                        }}
+                    >
+                      Previous
                     </button>
-                    <span style={{ margin: '0 1rem' }}>Page {currentPage + 1} / {totalPages}</span>
-                    <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage >= totalPages - 1} style={paginationBtn}>
-                      Next ▶
+                    <span style={{ display: 'flex', alignItems: 'center', padding: '0 1rem' }}>
+                  Page {currentPage + 1} of {totalPages}
+                </span>
+                    <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage >= totalPages - 1}
+                        style={{
+                          padding: '0.5rem 1rem',
+                          backgroundColor: currentPage >= totalPages - 1 ? '#ccc' : '#3498db',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: currentPage >= totalPages - 1 ? 'not-allowed' : 'pointer'
+                        }}
+                    >
+                      Next
                     </button>
                   </div>
                 </div>
-              </section>
+              </div>
           )}
 
+          {/* Admins Tab */}
           {activeTab === 'admins' && (
-              <section>
-                <h2 style={{ marginBottom: '1rem' }}>Admin Users</h2>
-                <div style={baseCardStyle}>
+              <div>
+                <h2>Admin Management</h2>
+                <div style={{
+                  backgroundColor: 'white',
+                  borderRadius: '8px',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                  overflow: 'hidden'
+                }}>
                   <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', color: 'white' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                       <thead>
-                      <tr style={{ backgroundColor: '#1c2636' }}>
-                        <th style={tableHeadCell}>Name</th>
-                        <th style={tableHeadCell}>Email</th>
-                        <th style={tableHeadCell}>Status</th>
-                        <th style={tableHeadCell}>Created</th>
-                        <th style={tableHeadCell}>Last Login</th>
+                      <tr style={{ backgroundColor: '#f8f9fa' }}>
+                        <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>Name</th>
+                        <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>Email</th>
+                        <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>Status</th>
+                        <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>Created</th>
+                        <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>Last Login</th>
                       </tr>
                       </thead>
                       <tbody>
-                      {admins.map((admin, i) => (
-                          <tr key={i} style={{ borderBottom: '1px solid #2a3b4d' }}>
-                            <td style={tableBodyCell}>{admin.name}</td>
-                            <td style={tableBodyCell}>{admin.email}</td>
-                            <td style={tableBodyCell}>
+                      {admins.map((admin, index) => (
+                          <tr key={index} style={{ borderBottom: '1px solid #dee2e6' }}>
+                            <td style={{ padding: '1rem' }}>{admin.name}</td>
+                            <td style={{ padding: '1rem' }}>{admin.email}</td>
+                            <td style={{ padding: '1rem' }}>
                           <span style={{
-                            background: admin.isActive ? '#00c853' : '#d50000',
-                            padding: '0.3rem 0.6rem',
+                            padding: '0.25rem 0.5rem',
+                            backgroundColor: admin.isActive ? '#27ae60' : '#e74c3c',
+                            color: 'white',
                             borderRadius: '4px',
-                            fontSize: '0.8rem',
-                            color: 'white'
-                          }}>{admin.isActive ? 'Active' : 'Inactive'}</span>
+                            fontSize: '0.8rem'
+                          }}>
+                            {admin.isActive ? 'Active' : 'Inactive'}
+                          </span>
                             </td>
-                            <td style={tableBodyCell}>{formatDate(admin.createdAt)}</td>
-                            <td style={tableBodyCell}>{admin.lastLogin ? formatDate(admin.lastLogin) : 'Never'}</td>
+                            <td style={{ padding: '1rem' }}>{formatDate(admin.createdAt)}</td>
+                            <td style={{ padding: '1rem' }}>
+                              {admin.lastLogin ? formatDate(admin.lastLogin) : 'Never'}
+                            </td>
                           </tr>
                       ))}
                       </tbody>
                     </table>
                   </div>
                 </div>
-              </section>
+              </div>
           )}
         </main>
       </div>
   );
 }
 
-// Styles used inside the component
-const tableHeadCell = {
-  padding: '1rem',
-  textAlign: 'left',
-  color: '#00fff7',
-  fontWeight: 'bold'
-};
-
-const tableBodyCell = {
-  padding: '1rem',
-  textAlign: 'left'
-};
-
-const paginationBtn = {
-  background: 'linear-gradient(45deg, #00f2fe, #4facfe)',
-  border: 'none',
-  padding: '0.5rem 1rem',
-  borderRadius: '6px',
-  color: 'white',
-  cursor: 'pointer',
-  margin: '0 0.5rem'
-};
-
-// Activity badge colors
 function getActivityColor(activity) {
   switch (activity) {
-    case 'LOGIN_SUCCESS': return '#00c853';
-    case 'DASHBOARD_ACCESS': return '#039be5';
-    case 'ACTIVITY_LOGS_ACCESS': return '#9c27b0';
-    case 'ADMIN_LIST_ACCESS': return '#ff9100';
-    case 'UNAUTHORIZED_LOGIN_ATTEMPT': return '#d50000';
-    default: return '#757575';
+    case 'LOGIN_SUCCESS':
+      return '#27ae60';
+    case 'DASHBOARD_ACCESS':
+      return '#3498db';
+    case 'ACTIVITY_LOGS_ACCESS':
+      return '#9b59b6';
+    case 'ADMIN_LIST_ACCESS':
+      return '#f39c12';
+    case 'UNAUTHORIZED_LOGIN_ATTEMPT':
+      return '#e74c3c';
+    default:
+      return '#95a5a6';
   }
 }
