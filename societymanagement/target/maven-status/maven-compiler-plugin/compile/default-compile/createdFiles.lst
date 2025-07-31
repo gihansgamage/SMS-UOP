@@ -1,4 +1,5 @@
 com/university/societymanagement/security/JwtAuthenticationFilter.class
+com/university/societymanagement/config/SecurityConfig.class
 com/university/societymanagement/controller/SocietyController.class
 com/university/societymanagement/controller/EmailController.class
 com/university/societymanagement/entity/Applicant.class
@@ -29,9 +30,11 @@ com/university/societymanagement/entity/PermissionRequest$EventType.class
 com/university/societymanagement/entity/ActivityLog.class
 com/university/societymanagement/repository/SocietyRegistrationRepository.class
 com/university/societymanagement/entity/PlanningEvent.class
+com/university/societymanagement/controller/AuthController.class
 com/university/societymanagement/entity/PermissionRequest$Status.class
 com/university/societymanagement/entity/PermissionRequest.class
 com/university/societymanagement/entity/AdminUser$AdminType.class
+com/university/societymanagement/SocietyManagementApplication.class
 com/university/societymanagement/entity/SocietyRenewal$Status.class
 com/university/societymanagement/repository/ApplicantRepository.class
 com/university/societymanagement/entity/SocietyRenewal.class

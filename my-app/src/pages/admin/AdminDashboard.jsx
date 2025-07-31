@@ -97,7 +97,7 @@ const AdminDashboard = () => {
                     <div className="px-4 py-5 sm:p-6">
                         <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
                         <div className="mt-2 text-sm text-gray-600">
-                            <p>Welcome, {dashboardData.name}</p>
+                            <p>Hi, Welcome, {dashboardData.name}</p>
                             <p>Role: {getAdminTypeDisplay(dashboardData.type)}</p>
                             {dashboardData.faculty && <p>Faculty: {dashboardData.faculty}</p>}
                             {dashboardData.lastLogin && <p>Last Login: {new Date(dashboardData.lastLogin).toLocaleString()}</p>}
