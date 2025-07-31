@@ -6,6 +6,19 @@ function About() {
   return (
 
     <Container className="my-5">
+    <style>
+            {`
+
+              .accordion-button:not(.collapsed) {
+                background-color: #800000 !important;
+                color: white !important;
+              }
+
+              .accordion-button:focus {
+                box-shadow: none !important;
+              }
+            `}
+    </style>
     <h1 className="text-center">About Us</h1>
       <Accordion defaultActiveKey="0">
         {/* About Us */}

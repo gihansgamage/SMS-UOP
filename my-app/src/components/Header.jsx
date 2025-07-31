@@ -1,34 +1,59 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 const Header = () => {
+
+    const backgroundImages = [
+        'url("/p1.jpg")',
+        'url("/p4.png")',
+        'url("/p6.jpg")'
+    ];
+    const [bgIndex, setBgIndex] = useState(0);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setBgIndex((prevIndex) => (prevIndex + 1) % backgroundImages.length);
+        }, 4000); // every 4 seconds
+        return () => clearInterval(interval);
+    }, []);
+
     const headerStyle = {
-        background: 'linear-gradient(135deg, #f8d7da 0%, #f5c6cb 50%, #f1b0b7 100%)',
+        backgroundImage: backgroundImages[bgIndex],
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        transition: 'background-image 1s ease-in-out',
         borderBottom: '4px solid #dc3545',
         boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
         padding: '3rem 0',
         position: 'relative',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        zIndex: 1,
     };
 
     const containerStyle = {
         maxWidth: '1200px',
         margin: '0 auto',
-        padding: '0 20px'
+        padding: '0 20px',
+        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+        borderRadius: '12px',
+
     };
 
+    // [No changes needed in styles below unless needed]
+
     const titleStyle = {
-        color: '#721c24',
+        color: '#FEF2F2',
         fontSize: '3.5rem',
         fontWeight: 'bold',
         textAlign: 'center',
         marginBottom: '1rem',
         textShadow: '2px 2px 4px rgba(0,0,0,0.1)',
         letterSpacing: '2px',
-        margin: '0 0 1rem 0'
+        margin: '0 0 1rem 0',
+        opacity:5
     };
 
     const welcomeStyle = {
-        color: '#842029',
+        color: '#FEF2F2',
         fontSize: '1.5rem',
         textAlign: 'center',
         fontWeight: '500',
@@ -48,14 +73,8 @@ const Header = () => {
         display: 'flex',
         justifyContent: 'center',
         gap: '8px',
-        marginTop: '2rem'
-    };
+        marginTop: '2rem',
 
-    const dotStyle = {
-        width: '12px',
-        height: '12px',
-        borderRadius: '50%',
-        animation: 'bounce 1.5s infinite'
     };
 
     const waveStyle = {
@@ -76,32 +95,32 @@ const Header = () => {
             0%, 100% { opacity: 0.3; transform: scale(0.8); }
             50% { opacity: 1; transform: scale(1.2); }
           }
-          
-          .dot-1 { 
-            animation-delay: 0s; 
-            background-color: #f8d7da; 
+
+          .dot-1 {
+            animation-delay: 0s;
+            background-color: #f8d7da;
             width: 12px;
             height: 12px;
             border-radius: 50%;
             animation: fadeInOut 2s infinite;
           }
-          .dot-2 { 
-            animation-delay: 0.5s; 
-            background-color: #dc3545; 
+          .dot-2 {
+            animation-delay: 0.5s;
+            background-color: #dc3545;
             width: 12px;
             height: 12px;
             border-radius: 50%;
             animation: fadeInOut 2s infinite;
           }
-          .dot-3 { 
-            animation-delay: 1s; 
-            background-color: #721c24; 
+          .dot-3 {
+            animation-delay: 1s;
+            background-color: #721c24;
             width: 12px;
             height: 12px;
             border-radius: 50%;
             animation: fadeInOut 2s infinite;
           }
-          
+
           @media (max-width: 768px) {
             .main-title {
               font-size: 2.5rem !important;
